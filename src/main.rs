@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use std::process::{Command, Stdio};
 use serde::{Deserialize, Serialize};
 
 
@@ -52,6 +53,17 @@ fn parse_package() {
     for key in json_value.scripts.keys() {
         println!("npm run {}", key);
     }
+
+
+    // run
+    let mut command = Command::new("sh");
+    command.arg("-c").arg("npm run start");
+
+    command.stdin(Stdio::inherit()).stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+
+    command.spawn().expect("failed to spawn sh process").wait().expect("failed to wait for sh process");
+
 
 
 }
