@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
 fn main() {
@@ -15,5 +17,16 @@ fn parse_package() {
         println!("File does not exist");
         return;
     }
+
+
+    // Open File
+    let mut file = File::open(file_path).expect("Failed to open file");
+
+    // Read
+
+    let mut json_string = String::new();
+
+    file.read_to_string(&mut json_string).expect("Failed to read file");
+
 
 }
