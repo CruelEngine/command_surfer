@@ -3,12 +3,11 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use ncurses::{COLOR_BLACK, COLOR_WHITE, curs_set, CURSOR_VISIBILITY, endwin, init_pair, initscr, noecho, refresh, start_color, getch, attron, COLOR_PAIR, erase};
+
+use ncurses::{attroff, attron, COLOR_BLACK, COLOR_PAIR, COLOR_WHITE, curs_set, CURSOR_VISIBILITY, endwin, erase, getch, init_pair, initscr, noecho, refresh, start_color};
 use ncurses::addstr;
-use ncurses::clear;
 use ncurses::mv;
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Package {
@@ -35,7 +34,6 @@ fn parse_package() {
     initscr();
     noecho();
 
-    addstr("Hello World").unwrap();
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
@@ -71,19 +69,33 @@ fn parse_package() {
     // Display List of executable scripts
     while !quit {
         erase();
-
+        mv(0,0);
         for (index, key) in script_list.iter().enumerate() {
             mv(index as i32, 0 as i32);
-            attron(COLOR_PAIR(REGULAR_PAIR));
+            let attribute =
+                if index == selected_command_index {
+                    attron(COLOR_PAIR(HIGHLIGHTED_PAIR));
+                } else {
+                    attron(COLOR_PAIR(REGULAR_PAIR));
+                };
             addstr(&key).unwrap();
+            if index == selected_command_index {
+                attroff(COLOR_PAIR(HIGHLIGHTED_PAIR));
+            } else {
+                attroff(COLOR_PAIR(REGULAR_PAIR));
+            };
         }
         refresh();
         let key = getch();
         match key as u8 as char {
-            'q' => quit = true,
+            'q' => {
+                quit = true;
+                endwin();
+            }
             'w' => {
-                selected_command_index -= 1;
-                if selected_command_index < 0 {
+                if selected_command_index > 0 {
+                    selected_command_index -= 1;
+                } else {
                     selected_command_index = script_list.len() - 1;
                 }
             }
@@ -96,11 +108,11 @@ fn parse_package() {
             '\n' => {
                 quit = true;
                 endwin();
+                execute_command(&script_list[selected_command_index]);
             }
             _ => {}
         }
     }
-    execute_command(&script_list[selected_command_index]);
 }
 
 fn execute_command(npm_command: &str) {
