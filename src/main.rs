@@ -24,7 +24,7 @@ const HIGHLIGHTED_PAIR: i16 = 1;
 
 
 fn main() {
-    let _result = parse_package();
+    parse_package();
 }
 
 
@@ -69,7 +69,7 @@ fn parse_package() {
     // Display List of executable scripts
     while !quit {
         erase();
-        mv(0,0);
+        mv(0, 0);
         for (index, key) in script_list.iter().enumerate() {
             mv(index as i32, 0 as i32);
             let attribute =
