@@ -16,7 +16,7 @@ struct Package {
     description: String,
     author: String,
     scripts: HashMap<String, String>,
-    dependencies: HashMap<String, String>
+    dependencies: HashMap<String, String>,
 }
 
 const REGULAR_PAIR: i16 = 0;
@@ -37,7 +37,7 @@ fn parse_package() {
 
     addstr("Hello World").unwrap();
     curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
-        start_color();
+    start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
     // Build the package.json file path
@@ -66,15 +66,14 @@ fn parse_package() {
 
     let mut selected_command_index = 0;
 
+    // Build the list of all the script names
+    let script_list: Vec<String> = json_value.scripts.iter().map(|(key, _)| format!("npm run {}", key)).collect();
     // Display List of executable scripts
-
-    let script_list = json_value.scripts.keys();
-    for (_index, key) in json_value.scripts.keys().enumerate() {
-        let script_name: String = format!("npm run {}", key);
-        mv(_index as i32, 0 as i32);
+    for (index , key) in script_list.iter().enumerate() {
+        mv(index as i32, 0 as i32);
         attron(COLOR_PAIR(REGULAR_PAIR));
-        addstr(&script_name);
-        println!("{}", script_name);
+        addstr(&key);
+        // println!("{}", script_name);
     }
     while !quit {
 
