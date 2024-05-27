@@ -76,33 +76,30 @@ fn parse_package() {
         // println!("{}", script_name);
     }
     while !quit {
-
-    let key = getch();
+        let key = getch();
 
         match key as u8 as char {
             'q' => quit = true,
             'w' => {
                 selected_command_index -= 1;
-                if selected_command_index < 0{
+                if selected_command_index < 0 {
                     selected_command_index = script_list.len() - 1;
                 }
-            },
+            }
             's' => {
                 selected_command_index += 1;
-                if script_list.len() < selected_command_index {
+                if selected_command_index > script_list.len() -1  {
                     selected_command_index = 0;
                 }
-            },
-            '\n' => {
-                println!("{}",selected_command_index);
-            },
-            _ => {
-
             }
+            '\n' => {
+                println!("{}", script_list[selected_command_index]);
+                println!("{}", selected_command_index);
+            }
+            _ => {}
         }
     }
     endwin();
-
 }
 
 fn execute_command(npm_command: &str) {
