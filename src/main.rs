@@ -3,8 +3,9 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
-use ncurses::{COLOR_BLACK, COLOR_WHITE, curs_set, CURSOR_VISIBILITY, endwin, init_pair, initscr, noecho, refresh, start_color, getch, attron, COLOR_PAIR};
+use ncurses::{COLOR_BLACK, COLOR_WHITE, curs_set, CURSOR_VISIBILITY, endwin, init_pair, initscr, noecho, refresh, start_color, getch, attron, COLOR_PAIR, erase};
 use ncurses::addstr;
+use ncurses::clear;
 use ncurses::mv;
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +27,6 @@ const HIGHLIGHTED_PAIR: i16 = 1;
 fn main() {
     let _result = parse_package();
 }
-
 
 
 fn parse_package() {
@@ -69,15 +69,16 @@ fn parse_package() {
     // Build the list of all the script names
     let script_list: Vec<String> = json_value.scripts.iter().map(|(key, _)| format!("npm run {}", key)).collect();
     // Display List of executable scripts
-    for (index , key) in script_list.iter().enumerate() {
-        mv(index as i32, 0 as i32);
-        attron(COLOR_PAIR(REGULAR_PAIR));
-        addstr(&key);
-        // println!("{}", script_name);
-    }
     while !quit {
-        let key = getch();
+        erase();
 
+        for (index, key) in script_list.iter().enumerate() {
+            mv(index as i32, 0 as i32);
+            attron(COLOR_PAIR(REGULAR_PAIR));
+            addstr(&key).unwrap();
+        }
+        refresh();
+        let key = getch();
         match key as u8 as char {
             'q' => quit = true,
             'w' => {
@@ -88,18 +89,18 @@ fn parse_package() {
             }
             's' => {
                 selected_command_index += 1;
-                if selected_command_index > script_list.len() -1  {
+                if selected_command_index > script_list.len() - 1 {
                     selected_command_index = 0;
                 }
             }
             '\n' => {
-                println!("{}", script_list[selected_command_index]);
-                println!("{}", selected_command_index);
+                quit = true;
+                endwin();
             }
             _ => {}
         }
     }
-    endwin();
+    execute_command(&script_list[selected_command_index]);
 }
 
 fn execute_command(npm_command: &str) {
