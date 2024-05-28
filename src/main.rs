@@ -5,9 +5,12 @@ use std::io::Read;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use ncurses::{attroff, attron, COLOR_BLACK, COLOR_PAIR, COLOR_WHITE, curs_set, CURSOR_VISIBILITY, endwin, erase, getch, init_pair, initscr, noecho, refresh, start_color};
 use ncurses::addstr;
 use ncurses::mv;
+use ncurses::{
+    attroff, attron, curs_set, endwin, erase, getch, init_pair, initscr, noecho, refresh,
+    start_color, COLOR_BLACK, COLOR_PAIR, COLOR_WHITE, CURSOR_VISIBILITY,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -23,11 +26,9 @@ struct Package {
 const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHTED_PAIR: i16 = 1;
 
-
 fn main() {
     parse_package();
 }
-
 
 fn parse_package() {
     let mut quit = false;
@@ -49,7 +50,6 @@ fn parse_package() {
         return;
     }
 
-
     // Open File
     let mut file = File::open(file_path).expect("Failed to open file");
 
@@ -57,8 +57,8 @@ fn parse_package() {
 
     let mut json_string = String::new();
 
-    file.read_to_string(&mut json_string).expect("Failed to read file");
-
+    file.read_to_string(&mut json_string)
+        .expect("Failed to read file");
 
     // Parse JSON
 
@@ -67,19 +67,22 @@ fn parse_package() {
     let mut selected_command_index = 0;
 
     // Build the list of all the script names
-    let script_list: Vec<String> = json_value.scripts.iter().map(|(key, _)| format!("npm run {}", key)).collect();
+    let script_list: Vec<String> = json_value
+        .scripts
+        .iter()
+        .map(|(key, _)| format!("npm run {}", key))
+        .collect();
     // Display List of executable scripts
     while !quit {
         erase();
         mv(0, 0);
         for (index, key) in script_list.iter().enumerate() {
             mv(index as i32, 0 as i32);
-            let attribute =
-                if index == selected_command_index {
-                    attron(COLOR_PAIR(HIGHLIGHTED_PAIR));
-                } else {
-                    attron(COLOR_PAIR(REGULAR_PAIR));
-                };
+            let attribute = if index == selected_command_index {
+                attron(COLOR_PAIR(HIGHLIGHTED_PAIR));
+            } else {
+                attron(COLOR_PAIR(REGULAR_PAIR));
+            };
             addstr(&key).unwrap();
             if index == selected_command_index {
                 attroff(COLOR_PAIR(HIGHLIGHTED_PAIR));
@@ -120,6 +123,13 @@ fn parse_package() {
 fn execute_command(npm_command: &str) {
     let mut command = Command::new("sh");
     command.arg("-c").arg(npm_command);
-    command.stdin(Stdio::inherit()).stdout(Stdio::inherit()).stderr(Stdio::inherit());
-    command.spawn().expect("failed to spawn sh process").wait().expect("failed to wait for sh process");
+    command
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    command
+        .spawn()
+        .expect("failed to spawn sh process")
+        .wait()
+        .expect("failed to wait for sh process");
 }
