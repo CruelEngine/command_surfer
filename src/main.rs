@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -38,8 +39,9 @@ fn parse_package() {
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
+    let current_directory = env::current_dir().expect("Failed to get current directory");
     // Build the package.json file path
-    let file_path = Path::new("package.json");
+    let file_path = current_directory.join("package.json");
 
     // Verify if file exists
     if !file_path.is_file() {
