@@ -17,8 +17,8 @@ use serde::{Deserialize, Serialize};
 struct Package {
     name: String,
     version: String,
-    description: String,
-    author: String,
+    description: Option<String>,
+    author: Option<String>,
     scripts: HashMap<String, String>,
     dependencies: HashMap<String, String>,
 }
