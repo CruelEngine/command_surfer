@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use ncurses::addstr;
@@ -50,6 +50,8 @@ fn parse_package() {
         return;
     }
 
+
+    get_package_manager_prefix();
     // Open File
     let mut file = File::open(file_path).expect("Failed to open file");
 
@@ -66,11 +68,12 @@ fn parse_package() {
 
     let mut selected_command_index = 0;
 
+    let package_manager_prefix = get_package_manager_prefix();
     // Build the list of all the script names
     let script_list: Vec<String> = json_value
         .scripts
         .iter()
-        .map(|(key, _)| format!("npm run {}", key))
+        .map(|(key, _)| format!("{} {}", package_manager_prefix,key))
         .collect();
     // Display List of executable scripts
     while !quit {
@@ -132,4 +135,35 @@ fn execute_command(npm_command: &str) {
         .expect("failed to spawn sh process")
         .wait()
         .expect("failed to wait for sh process");
+}
+
+
+fn get_package_manager_prefix() -> &'static str {
+    if is_yarn_used() {
+        return "yarn";
+    }
+
+    if is_pnpm_used() {
+        return "pnpm run";
+    }
+
+    return "npm run";
+}
+
+
+fn is_npm_used() -> bool {
+    let current_directory = env::current_dir().expect("Failed to get current directory");
+    return current_directory.join("package-lock.json").exists();
+}
+
+
+fn is_pnpm_used() ->bool {
+    let current_directory = env::current_dir().expect("Failed to get current directory");
+    return current_directory.join("pnpm-lock.yml").exists();
+}
+
+
+fn is_yarn_used() -> bool {
+    let current_directory = env::current_dir().expect("Failed to get current directory");
+    return current_directory.join("yarn.lock").exists();
 }
