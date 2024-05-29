@@ -27,21 +27,6 @@ const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHTED_PAIR: i16 = 1;
 
 fn main() {
-    parse_package();
-}
-
-fn parse_package() {
-    let mut quit = false;
-
-    initscr();
-    noecho();
-
-    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
-    start_color();
-    init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
-
-
     let json_value = match parse_package_json_file() {
         Some(value) => value,
         None => return,
@@ -54,9 +39,19 @@ fn parse_package() {
     let script_list: Vec<String> = json_value
         .scripts
         .iter()
-        .map(|(key, _)| format!("{} {}", package_manager_prefix,key))
+        .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
         .collect();
+
+    initscr();
+    noecho();
+
+    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    start_color();
+    init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
+    init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
+
     // Display List of executable scripts
+    let mut quit = false;
     while !quit {
         erase();
         mv(0, 0);
@@ -138,31 +133,25 @@ fn execute_command(npm_command: &str) {
         .expect("failed to wait for sh process");
 }
 
-
 fn get_package_manager_prefix() -> &'static str {
     if is_yarn_used() {
         return "yarn";
     }
-
     if is_pnpm_used() {
         return "pnpm run";
     }
-
     return "npm run";
 }
-
 
 fn is_npm_used() -> bool {
     let current_directory = env::current_dir().expect("Failed to get current directory");
     return current_directory.join("package-lock.json").exists();
 }
 
-
-fn is_pnpm_used() ->bool {
+fn is_pnpm_used() -> bool {
     let current_directory = env::current_dir().expect("Failed to get current directory");
     return current_directory.join("pnpm-lock.yml").exists();
 }
-
 
 fn is_yarn_used() -> bool {
     let current_directory = env::current_dir().expect("Failed to get current directory");
