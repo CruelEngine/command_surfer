@@ -5,11 +5,9 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use ncurses::addstr;
-use ncurses::mv;
-use ncurses::{
-    attroff, attron, curs_set, endwin, erase, getch, init_pair, initscr, noecho, refresh,
-    start_color, COLOR_BLACK, COLOR_PAIR, COLOR_WHITE, CURSOR_VISIBILITY,
+use pancurses::{
+    curs_set, endwin, init_pair, initscr, noecho, start_color, ColorPair, Input, COLOR_BLACK,
+    COLOR_PAIR, COLOR_WHITE,
 };
 use serde::{Deserialize, Serialize};
 
@@ -42,10 +40,10 @@ fn main() {
         .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
         .collect();
 
-    initscr();
+    let window = initscr();
     noecho();
 
-    curs_set(CURSOR_VISIBILITY::CURSOR_INVISIBLE);
+    curs_set(0);
     start_color();
     init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
     init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
@@ -53,43 +51,43 @@ fn main() {
     // Display List of executable scripts
     let mut quit = false;
     while !quit {
-        erase();
-        mv(0, 0);
+        window.erase();
+        window.mv(0, 0);
         for (index, key) in script_list.iter().enumerate() {
-            mv(index as i32, 0 as i32);
+            window.mv(index as i32, 0 as i32);
             let attribute = if index == selected_command_index {
-                attron(COLOR_PAIR(HIGHLIGHTED_PAIR));
+                window.attron(ColorPair(HIGHLIGHTED_PAIR as u8));
             } else {
-                attron(COLOR_PAIR(REGULAR_PAIR));
+                window.attron(ColorPair(REGULAR_PAIR as u8));
             };
-            addstr(&key).unwrap();
+            window.addstr(&key);
             if index == selected_command_index {
-                attroff(COLOR_PAIR(HIGHLIGHTED_PAIR));
+                window.attroff(ColorPair(HIGHLIGHTED_PAIR as u8));
             } else {
-                attroff(COLOR_PAIR(REGULAR_PAIR));
+                window.attroff(ColorPair(REGULAR_PAIR as u8));
             };
         }
-        refresh();
-        let key = getch();
-        match key as u8 as char {
-            'q' => {
+        window.refresh();
+        let key = window.getch();
+        match key {
+            Some(Input::Character('q')) => {
                 quit = true;
                 endwin();
             }
-            'w' => {
+            Some(Input::Character('w')) => {
                 if selected_command_index > 0 {
                     selected_command_index -= 1;
                 } else {
                     selected_command_index = script_list.len() - 1;
                 }
             }
-            's' => {
+            Some(Input::Character('s')) => {
                 selected_command_index += 1;
                 if selected_command_index > script_list.len() - 1 {
                     selected_command_index = 0;
                 }
             }
-            '\n' => {
+            Some(Input::Character('\n')) => {
                 quit = true;
                 endwin();
                 execute_command(&script_list[selected_command_index]);
@@ -120,8 +118,14 @@ fn parse_package_json_file() -> Option<Package> {
 }
 
 fn execute_command(npm_command: &str) {
-    let mut command = Command::new("sh");
-    command.arg("-c").arg(npm_command);
+    let mut command: Command;
+    if cfg!(target_os = "windows") {
+        command = Command::new("cmd");
+        command.arg("/C").arg(npm_command);
+    } else {
+        command = Command::new("sh");
+        command.arg("-c").arg(npm_command);
+    }
     command
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
