@@ -413,22 +413,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "ncurses"
-version = "6.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4e8f88d2767a7c13193ede671f25733e32e4116d4c17778cf9af3beddba7881"
-dependencies = [
- "cc",
- "libc",
- "pkg-config",
-]
-
-[[package]]
 name = "node-script-list"
 version = "0.1.0"
 dependencies = [
  "cargo-deb",
- "ncurses 6.0.0",
  "pancurses",
  "serde",
  "serde_json",
@@ -448,7 +436,7 @@ checksum = "0352975c36cbacb9ee99bfb709b9db818bed43af57751797f8633649759d13db"
 dependencies = [
  "libc",
  "log",
- "ncurses 5.101.0",
+ "ncurses",
  "pdcurses-sys",
  "winreg",
 ]
