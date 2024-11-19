@@ -40,6 +40,9 @@ fn main() {
         .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
         .collect();
 
+    let mut sorted_script_list = script_list.iter().cloned().collect();
+    sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+
     let window = initscr();
     noecho();
 
@@ -53,7 +56,7 @@ fn main() {
     while !quit {
         window.erase();
         window.mv(0, 0);
-        for (index, key) in script_list.iter().enumerate() {
+        for (index, key) in sorted_script_list.iter().enumerate() {
             window.mv(index as i32, 0 as i32);
             let attribute = if index == selected_command_index {
                 window.attron(ColorPair(HIGHLIGHTED_PAIR as u8));
@@ -78,19 +81,19 @@ fn main() {
                 if selected_command_index > 0 {
                     selected_command_index -= 1;
                 } else {
-                    selected_command_index = script_list.len() - 1;
+                    selected_command_index = sorted_script_list.len() - 1;
                 }
             }
             Some(Input::Character('s')) => {
                 selected_command_index += 1;
-                if selected_command_index > script_list.len() - 1 {
+                if selected_command_index > sorted_script_list.len() - 1 {
                     selected_command_index = 0;
                 }
             }
             Some(Input::Character('\n')) => {
                 quit = true;
                 endwin();
-                execute_command(&script_list[selected_command_index]);
+                execute_command(&sorted_script_list[selected_command_index]);
             }
             _ => {}
         }
