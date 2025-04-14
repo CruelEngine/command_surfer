@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Read;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -40,7 +42,7 @@ fn main() {
         .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
         .collect();
 
-    let mut sorted_script_list = script_list.iter().cloned().collect();
+    let mut sorted_script_list: Vec<String> = script_list.iter().cloned().collect();
     sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
 
     let window = initscr();
@@ -138,6 +140,36 @@ fn execute_command(npm_command: &str) {
         .expect("failed to spawn sh process")
         .wait()
         .expect("failed to wait for sh process");
+
+    append_command_to_history(npm_command);
+}
+
+fn append_command_to_history(npm_command: &str) {
+    let shell = env::var("SHELL").unwrap_or_else(|_| String::from("/bin/bash"));
+    let history_file_path = if shell.contains("zsh") {
+        format!("{}/.zsh_history", env::var("HOME").unwrap())
+    } else {
+        format!("{}/.bash_history", env::var("HOME").unwrap())
+    };
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(history_file_path)
+        .unwrap();
+
+    if shell.contains("zsh") {
+        // Zsh needs timestamp format
+        writeln!(
+            file,
+            ": {}:0;{}",
+            chrono::Utc::now().timestamp(),
+            npm_command
+        )
+        .unwrap();
+    } else {
+        // Bash is simple :)
+        writeln!(file, "{}", npm_command).unwrap();
+    }
 }
 
 fn get_package_manager_prefix() -> &'static str {
