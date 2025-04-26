@@ -158,7 +158,6 @@ fn append_command_to_history(npm_command: &str) {
         .unwrap();
 
     if shell.contains("zsh") {
-        // Zsh needs timestamp format
         writeln!(
             file,
             ": {}:0;{}",
@@ -167,9 +166,15 @@ fn append_command_to_history(npm_command: &str) {
         )
         .unwrap();
     } else {
-        // Bash is simple :)
         writeln!(file, "{}", npm_command).unwrap();
     }
+    let mut command = Command::new("zsh");
+    command.arg("-c").arg("fc -R");
+    command
+        .spawn()
+        .expect("failed to spawn sh process")
+        .wait()
+        .expect("failed to wait for sh process");
 }
 
 fn get_package_manager_prefix() -> &'static str {
