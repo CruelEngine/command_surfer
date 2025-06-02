@@ -13,12 +13,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Package {
-    name: String,
-    version: String,
+    name: Option<String>,
+    version: Option<String>,
     description: Option<String>,
     author: Option<String>,
-    scripts: HashMap<String, String>,
-    dependencies: HashMap<String, String>,
+    scripts: Option<HashMap<String, String>>,
+    dependencies: Option<HashMap<String, String>>,
 }
 
 const REGULAR_PAIR: i16 = 0;
@@ -40,7 +40,7 @@ fn main() {
         .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
         .collect();
 
-    let mut sorted_script_list = script_list.iter().cloned().collect();
+    let mut sorted_script_list: Vec<String> = script_list.iter().cloned().collect();
     sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
 
     let window = initscr();
