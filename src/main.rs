@@ -12,13 +12,44 @@ use pancurses::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Package {
+struct PackageJson {
     name: Option<String>,
     version: Option<String>,
     description: Option<String>,
     author: Option<String>,
     scripts: Option<HashMap<String, String>>,
     dependencies: Option<HashMap<String, String>>,
+}
+
+impl PackageJson {
+    pub fn new(file_name: String) {
+        let json_value = match parse_package_json_file() {
+            Some(value) => value,
+            None => return,
+        };
+    }
+
+    fn parse_package_json_file() -> Option<PackageJson> {
+        let current_directory = env::current_dir().expect("Failed to get current directory");
+        // Build the package.json file path
+        let file_path = current_directory.join("package.json");
+        // Verify if file exists
+        if !file_path.is_file() {
+            println!("File does not exist");
+            return None;
+        }
+        // Open File
+        let mut file = File::open(file_path).expect("Failed to open file");
+        // Read
+        let mut json_string = String::new();
+        file.read_to_string(&mut json_string)
+            .expect("Failed to read file");
+        // Parse JSON
+        let json_value: Package = serde_json::from_str(&json_string).expect("Failed to parse json");
+        let json_value: PackageJson =
+            serde_json::from_str(&json_string).expect("Failed to parse json");
+        Some(json_value)
+    }
 }
 
 const REGULAR_PAIR: i16 = 0;
@@ -98,26 +129,6 @@ fn main() {
             _ => {}
         }
     }
-}
-
-fn parse_package_json_file() -> Option<Package> {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    // Build the package.json file path
-    let file_path = current_directory.join("package.json");
-    // Verify if file exists
-    if !file_path.is_file() {
-        println!("File does not exist");
-        return None;
-    }
-    // Open File
-    let mut file = File::open(file_path).expect("Failed to open file");
-    // Read
-    let mut json_string = String::new();
-    file.read_to_string(&mut json_string)
-        .expect("Failed to read file");
-    // Parse JSON
-    let json_value: Package = serde_json::from_str(&json_string).expect("Failed to parse json");
-    Some(json_value)
 }
 
 fn execute_command(npm_command: &str) {
