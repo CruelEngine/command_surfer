@@ -12,13 +12,28 @@ use pancurses::{
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Package {
+struct PackageJson {
     name: Option<String>,
     version: Option<String>,
     description: Option<String>,
     author: Option<String>,
     scripts: Option<HashMap<String, String>>,
     dependencies: Option<HashMap<String, String>>,
+}
+
+pub trait CommandPrefix {
+    fn prefix_command(&self, prefix: &'static str) -> Vec<String>;
+}
+
+impl CommandPrefix for PackageJson {
+    fn prefix_command(&self, prefix: &'static str) -> Vec<String> {
+        &self
+            .scripts
+            .expect("PackageJson Parse Error: Scripts Unavailable")
+            .iter()
+            .map(|script_name, _| format!("{} {}", prefix, script_name))
+            .collect()
+    }
 }
 
 const REGULAR_PAIR: i16 = 0;
@@ -34,15 +49,11 @@ fn main() {
 
     let package_manager_prefix = get_package_manager_prefix();
     // Build the list of all the script names
-    let script_list: Vec<String> = json_value
-        .scripts
-        .iter()
-        .map(|(key, _)| format!("{} {}", package_manager_prefix, key))
-        .collect();
+    let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
 
-    let mut sorted_script_list: Vec<String> = script_list.iter().cloned().collect();
-    sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    let sorted_script_list = sort_command_list(prefixed_script_list);
 
+    // Display Script Commands
     let window = initscr();
     noecho();
 
@@ -56,14 +67,14 @@ fn main() {
     while !quit {
         window.erase();
         window.mv(0, 0);
-        for (index, key) in sorted_script_list.iter().enumerate() {
+        for (index, script_name) in sorted_script_list.iter().enumerate() {
             window.mv(index as i32, 0 as i32);
             let attribute = if index == selected_command_index {
                 window.attron(ColorPair(HIGHLIGHTED_PAIR as u8));
             } else {
                 window.attron(ColorPair(REGULAR_PAIR as u8));
             };
-            window.addstr(&key);
+            window.addstr(&script_name);
             if index == selected_command_index {
                 window.attroff(ColorPair(HIGHLIGHTED_PAIR as u8));
             } else {
@@ -100,7 +111,7 @@ fn main() {
     }
 }
 
-fn parse_package_json_file() -> Option<Package> {
+fn parse_package_json_file() -> Option<PackageJson> {
     let current_directory = env::current_dir().expect("Failed to get current directory");
     // Build the package.json file path
     let file_path = current_directory.join("package.json");
@@ -116,7 +127,7 @@ fn parse_package_json_file() -> Option<Package> {
     file.read_to_string(&mut json_string)
         .expect("Failed to read file");
     // Parse JSON
-    let json_value: Package = serde_json::from_str(&json_string).expect("Failed to parse json");
+    let json_value: PackageJson = serde_json::from_str(&json_string).expect("Failed to parse json");
     Some(json_value)
 }
 
@@ -163,4 +174,10 @@ fn is_pnpm_used() -> bool {
 fn is_yarn_used() -> bool {
     let current_directory = env::current_dir().expect("Failed to get current directory");
     return current_directory.join("yarn.lock").exists();
+}
+
+fn sort_command_list(command_list: Vec<String>) -> Vec<String> {
+    let mut sorted_script_list: Vec<String> = command_list.iter().cloned().collect();
+    sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    sorted_script_list
 }
