@@ -27,11 +27,11 @@ pub trait CommandPrefix {
 
 impl CommandPrefix for PackageJson {
     fn prefix_command(&self, prefix: &'static str) -> Vec<String> {
-        &self
-            .scripts
+        self.scripts
+            .as_ref()
             .expect("PackageJson Parse Error: Scripts Unavailable")
             .iter()
-            .map(|script_name, _| format!("{} {}", prefix, script_name))
+            .map(|(script_name, _)| format!("{} {}", prefix, script_name))
             .collect()
     }
 }
