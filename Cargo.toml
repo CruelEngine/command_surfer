@@ -1,5 +1,5 @@
 [package]
-name = "node-script-list"
+name = "node_script_list"
 version = "0.1.0"
 edition = "2021"
 authors = ["CruelEngine"]
@@ -12,3 +12,6 @@ cargo-deb = "2.2.0"
 pancurses = { version = "0.17.0", features = ["win32"] }
 serde = { version = "1.0.200", features = ["derive"] }
 serde_json = "1.0.116"
+
+[dev-dependencies]
+tempfile = "3.20.0"

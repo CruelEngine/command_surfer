@@ -1,54 +1,28 @@
-use std::collections::HashMap;
-use std::env;
-use std::fs::File;
-use std::io::Read;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
-
 use pancurses::{
     curs_set, endwin, init_pair, initscr, noecho, start_color, ColorPair, Input, COLOR_BLACK,
-    COLOR_PAIR, COLOR_WHITE,
+    COLOR_WHITE,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize, Debug)]
-struct PackageJson {
-    name: Option<String>,
-    version: Option<String>,
-    description: Option<String>,
-    author: Option<String>,
-    scripts: Option<HashMap<String, String>>,
-    dependencies: Option<HashMap<String, String>>,
-}
-
-pub trait CommandPrefix {
-    fn prefix_command(&self, prefix: &'static str) -> Vec<String>;
-}
-
-impl CommandPrefix for PackageJson {
-    fn prefix_command(&self, prefix: &'static str) -> Vec<String> {
-        self.scripts
-            .as_ref()
-            .expect("PackageJson Parse Error: Scripts Unavailable")
-            .iter()
-            .map(|(script_name, _)| format!("{} {}", prefix, script_name))
-            .collect()
-    }
-}
+use std::env;
 
 const REGULAR_PAIR: i16 = 0;
 const HIGHLIGHTED_PAIR: i16 = 1;
 
+use node_script_list::{
+    execute_command, get_package_manager_prefix, parse_package_json_file, sort_command_list,
+    CommandPrefix,
+};
+
 fn main() {
-    let json_value = match parse_package_json_file() {
+    let current_directory = env::current_dir().expect("Failed to get current directory");
+    let json_value = match parse_package_json_file(&current_directory) {
         Some(value) => value,
         None => return,
     };
 
     let mut selected_command_index = 0;
 
-    let package_manager_prefix = get_package_manager_prefix();
-    // Build the list of all the script names
+    let package_manager_prefix = get_package_manager_prefix(&current_directory); // Pass current_directory
+                                                                                 // Build the list of all the script names
     let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
 
     let sorted_script_list = sort_command_list(prefixed_script_list);
@@ -109,75 +83,4 @@ fn main() {
             _ => {}
         }
     }
-}
-
-fn parse_package_json_file() -> Option<PackageJson> {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    // Build the package.json file path
-    let file_path = current_directory.join("package.json");
-    // Verify if file exists
-    if !file_path.is_file() {
-        println!("File does not exist");
-        return None;
-    }
-    // Open File
-    let mut file = File::open(file_path).expect("Failed to open file");
-    // Read
-    let mut json_string = String::new();
-    file.read_to_string(&mut json_string)
-        .expect("Failed to read file");
-    // Parse JSON
-    let json_value: PackageJson = serde_json::from_str(&json_string).expect("Failed to parse json");
-    Some(json_value)
-}
-
-fn execute_command(npm_command: &str) {
-    let mut command: Command;
-    if cfg!(target_os = "windows") {
-        command = Command::new("cmd");
-        command.arg("/C").arg(npm_command);
-    } else {
-        command = Command::new("sh");
-        command.arg("-c").arg(npm_command);
-    }
-    command
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-    command
-        .spawn()
-        .expect("failed to spawn sh process")
-        .wait()
-        .expect("failed to wait for sh process");
-}
-
-fn get_package_manager_prefix() -> &'static str {
-    if is_yarn_used() {
-        return "yarn";
-    }
-    if is_pnpm_used() {
-        return "pnpm run";
-    }
-    return "npm run";
-}
-
-fn is_npm_used() -> bool {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    return current_directory.join("package-lock.json").exists();
-}
-
-fn is_pnpm_used() -> bool {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    return current_directory.join("pnpm-lock.yml").exists();
-}
-
-fn is_yarn_used() -> bool {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    return current_directory.join("yarn.lock").exists();
-}
-
-fn sort_command_list(command_list: Vec<String>) -> Vec<String> {
-    let mut sorted_script_list: Vec<String> = command_list.iter().cloned().collect();
-    sorted_script_list.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
-    sorted_script_list
 }
