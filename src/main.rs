@@ -21,13 +21,12 @@ fn main() {
 
     let mut selected_command_index = 0;
 
-    let package_manager_prefix = get_package_manager_prefix(&current_directory); // Pass current_directory
-                                                                                 // Build the list of all the script names
+    let package_manager_prefix = get_package_manager_prefix(&current_directory);
+
     let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
 
     let sorted_script_list = sort_command_list(prefixed_script_list);
 
-    // Display Script Commands
     let window = initscr();
     noecho();
 

@@ -30,21 +30,15 @@ impl CommandPrefix for PackageJson {
 }
 
 pub fn parse_package_json_file(base_path: &std::path::Path) -> Option<PackageJson> {
-    // let current_directory = env::current_dir().expect("Failed to get current directory"); // Removed
-    // Build the package.json file path
-    let file_path = base_path.join("package.json"); // Use base_path
-                                                    // Verify if file exists
+    let file_path = base_path.join("package.json");
     if !file_path.is_file() {
-        println!("File does not exist at {:?}", file_path); // Added path for better debugging
+        println!("File does not exist at {:?}", file_path);
         return None;
     }
-    // Open File
     let mut file = File::open(file_path).expect("Failed to open file");
-    // Read
     let mut json_string = String::new();
     file.read_to_string(&mut json_string)
         .expect("Failed to read file");
-    // Parse JSON
     let json_value: PackageJson = serde_json::from_str(&json_string).expect("Failed to parse json");
     Some(json_value)
 }
@@ -69,35 +63,26 @@ pub fn execute_command(npm_command: &str) {
         .expect("failed to wait for sh process");
 }
 
-// Modified to accept a base_path
 pub fn get_package_manager_prefix(base_path: &std::path::Path) -> &'static str {
     if is_yarn_used(base_path) {
-        // Pass base_path
         return "yarn";
     }
     if is_pnpm_used(base_path) {
-        // Pass base_path
         return "pnpm run";
     }
     return "npm run";
 }
 
-// Modified to accept a base_path
 pub fn is_npm_used(base_path: &std::path::Path) -> bool {
-    // let current_directory = env::current_dir().expect("Failed to get current directory"); // Removed
-    base_path.join("package-lock.json").exists() // Use base_path
+    base_path.join("package-lock.json").exists()
 }
 
-// Modified to accept a base_path
 pub fn is_pnpm_used(base_path: &std::path::Path) -> bool {
-    // let current_directory = env::current_dir().expect("Failed to get current directory"); // Removed
-    base_path.join("pnpm-lock.yml").exists() // Use base_path
+    base_path.join("pnpm-lock.yml").exists()
 }
 
-// Modified to accept a base_path
 pub fn is_yarn_used(base_path: &std::path::Path) -> bool {
-    // let current_directory = env::current_dir().expect("Failed to get current directory"); // Removed
-    base_path.join("yarn.lock").exists() // Use base_path
+    base_path.join("yarn.lock").exists()
 }
 
 pub fn sort_command_list(command_list: Vec<String>) -> Vec<String> {
