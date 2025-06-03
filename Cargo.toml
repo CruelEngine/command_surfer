@@ -1,5 +1,5 @@
 [package]
-name = "node-script-list"
+name = "node_script_list"
 version = "0.1.0"
 edition = "2021"
 authors = ["CruelEngine"]
