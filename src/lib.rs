@@ -18,6 +18,12 @@ pub trait CommandPrefix {
     fn prefix_command(&self, prefix: &'static str) -> Vec<String>;
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ToolMode {
+    DEFAULT,
+    FILTER,
+}
+
 impl CommandPrefix for PackageJson {
     fn prefix_command(&self, prefix: &'static str) -> Vec<String> {
         self.scripts
