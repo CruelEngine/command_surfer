@@ -11,44 +11,14 @@ use node_script_list::{
 
 fn main() {
     match App::new() {
-        Ok(app) => {
-            run_app(
-                app.highlighted_command_index,
-                app.commands,
-                app.window,
-                app.mode,
-                app.filter_string,
-            );
+        Ok(mut app) => {
+            app.run();
         }
         Err(err) => {
             eprintln!("Error: {}", err);
             std::process::exit(1);
         }
     };
-}
-
-fn run_app(
-    mut highlighted_command_index: usize,
-    commands: Vec<String>,
-    window: pancurses::Window,
-    mut mode: Mode,
-    mut filter_string: String,
-) {
-    let mut quit = false;
-    let mut filtered_commands: Vec<String> = commands.clone();
-    while !quit {
-        display_commands(highlighted_command_index, &filtered_commands, &window);
-        display_filter_value(&filter_string, &window, filtered_commands.len() as i32);
-        handle_keyboard_input(
-            &mut highlighted_command_index,
-            &commands,
-            &window,
-            &mut mode,
-            &mut filter_string,
-            &mut quit,
-            &mut filtered_commands,
-        );
-    }
 }
 
 enum ColorScheme {
@@ -73,6 +43,7 @@ struct App {
     window: Window,
     mode: Mode,
     filter_string: String,
+    quit: bool,
 }
 
 impl App {
@@ -99,7 +70,33 @@ impl App {
             window,
             mode,
             filter_string,
+            quit: false,
         })
+    }
+
+    fn run(&mut self) {
+        let mut filtered_commands: Vec<String> = self.commands.clone();
+        while !self.quit {
+            display_commands(
+                self.highlighted_command_index,
+                &filtered_commands,
+                &self.window,
+            );
+            display_filter_value(
+                &self.filter_string,
+                &self.window,
+                filtered_commands.len() as i32,
+            );
+            handle_keyboard_input(
+                &mut self.highlighted_command_index,
+                &self.commands,
+                &self.window,
+                &mut self.mode,
+                &mut self.filter_string,
+                &mut self.quit,
+                &mut filtered_commands,
+            );
+        }
     }
 }
 
