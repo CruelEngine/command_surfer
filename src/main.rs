@@ -53,6 +53,18 @@ fn run_app(
     }
 }
 
+enum ColorScheme {
+    Regular = 0,
+    Highlighted = 1,
+}
+
+impl ColorScheme {
+    fn init() {
+        init_pair(Self::Regular as i16, COLOR_WHITE, COLOR_BLACK);
+        init_pair(Self::Highlighted as i16, COLOR_BLACK, COLOR_WHITE);
+    }
+}
+
 fn init_app() -> Option<(usize, Vec<String>, pancurses::Window, ToolMode, String)> {
     let current_directory = env::current_dir().expect("Failed to get current directory");
     let json_value = match parse_package_json_file(&current_directory) {
@@ -69,8 +81,8 @@ fn init_app() -> Option<(usize, Vec<String>, pancurses::Window, ToolMode, String
     noecho();
     curs_set(0);
     start_color();
-    init_pair(REGULAR_PAIR, COLOR_WHITE, COLOR_BLACK);
-    init_pair(HIGHLIGHTED_PAIR, COLOR_BLACK, COLOR_WHITE);
+    ColorScheme::init();
+
     Some((
         selected_command_index,
         sorted_script_list,
