@@ -4,9 +4,6 @@ use pancurses::{
 };
 use std::env;
 
-const REGULAR_PAIR: i16 = 0;
-const HIGHLIGHTED_PAIR: i16 = 1;
-
 use node_script_list::{
     execute_command, get_package_manager_prefix, parse_package_json_file, sort_command_list,
     CommandPrefix, ToolMode,
@@ -62,6 +59,10 @@ impl ColorScheme {
     fn init() {
         init_pair(Self::Regular as i16, COLOR_WHITE, COLOR_BLACK);
         init_pair(Self::Highlighted as i16, COLOR_BLACK, COLOR_WHITE);
+    }
+
+    fn pair(self) -> ColorPair {
+        ColorPair(self as u8)
     }
 }
 
@@ -255,17 +256,14 @@ fn display_commands(
     window.mv(0, 0);
     for (index, script_name) in sorted_script_list.iter().enumerate() {
         window.mv(index as i32, 0 as i32);
-        let attribute = if index == selected_command_index {
-            window.attron(ColorPair(HIGHLIGHTED_PAIR as u8));
+        let color_pair = if index == selected_command_index {
+            ColorScheme::Highlighted.pair()
         } else {
-            window.attron(ColorPair(REGULAR_PAIR as u8));
+            ColorScheme::Regular.pair()
         };
+        window.attron(color_pair);
         window.addstr(&script_name);
-        if index == selected_command_index {
-            window.attroff(ColorPair(HIGHLIGHTED_PAIR as u8));
-        } else {
-            window.attroff(ColorPair(REGULAR_PAIR as u8));
-        };
+        window.attroff(color_pair);
     }
 }
 
