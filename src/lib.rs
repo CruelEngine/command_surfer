@@ -19,7 +19,7 @@ pub trait CommandPrefix {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum ToolMode {
+pub enum Mode {
     DEFAULT,
     FILTER,
 }

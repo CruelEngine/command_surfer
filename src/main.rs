@@ -1,46 +1,47 @@
 use pancurses::{
-    curs_set, endwin, init_pair, initscr, noecho, start_color, ColorPair, Input, COLOR_BLACK,
-    COLOR_WHITE,
+    curs_set, endwin, init_pair, initscr, noecho, start_color, ColorPair, Input, Window,
+    COLOR_BLACK, COLOR_WHITE,
 };
-use std::env;
+use std::{env, io::Error};
 
 use node_script_list::{
     execute_command, get_package_manager_prefix, parse_package_json_file, sort_command_list,
-    CommandPrefix, ToolMode,
+    CommandPrefix, Mode,
 };
 
 fn main() {
-    let (mut selected_command_index, sorted_script_list, window, mut mode, mut filter_string) =
-        match init_app() {
-            Some(value) => value,
-            None => return,
-        };
-
-    // Display List of executable scripts
-    run_app(
-        selected_command_index,
-        sorted_script_list,
-        window,
-        mode,
-        filter_string,
-    );
+    match App::new() {
+        Ok(app) => {
+            run_app(
+                app.highlighted_command_index,
+                app.commands,
+                app.window,
+                app.mode,
+                app.filter_string,
+            );
+        }
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            std::process::exit(1);
+        }
+    };
 }
 
 fn run_app(
-    mut selected_command_index: usize,
-    sorted_script_list: Vec<String>,
+    mut highlighted_command_index: usize,
+    commands: Vec<String>,
     window: pancurses::Window,
-    mut mode: ToolMode,
+    mut mode: Mode,
     mut filter_string: String,
 ) {
     let mut quit = false;
-    let mut filtered_commands: Vec<String> = sorted_script_list.clone();
+    let mut filtered_commands: Vec<String> = commands.clone();
     while !quit {
-        display_commands(selected_command_index, &filtered_commands, &window);
+        display_commands(highlighted_command_index, &filtered_commands, &window);
         display_filter_value(&filter_string, &window, filtered_commands.len() as i32);
         handle_keyboard_input(
-            &mut selected_command_index,
-            &sorted_script_list,
+            &mut highlighted_command_index,
+            &commands,
             &window,
             &mut mode,
             &mut filter_string,
@@ -66,47 +67,56 @@ impl ColorScheme {
     }
 }
 
-fn init_app() -> Option<(usize, Vec<String>, pancurses::Window, ToolMode, String)> {
-    let current_directory = env::current_dir().expect("Failed to get current directory");
-    let json_value = match parse_package_json_file(&current_directory) {
-        Some(value) => value,
-        None => return None,
-    };
-    let mut selected_command_index = 0;
-    let package_manager_prefix = get_package_manager_prefix(&current_directory);
-    let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
-    let sorted_script_list = sort_command_list(prefixed_script_list);
-    let window = initscr();
-    let mut mode: ToolMode = ToolMode::DEFAULT;
-    let mut filter_string: String = String::new();
-    noecho();
-    curs_set(0);
-    start_color();
-    ColorScheme::init();
+struct App {
+    highlighted_command_index: usize,
+    commands: Vec<String>,
+    window: Window,
+    mode: Mode,
+    filter_string: String,
+}
 
-    Some((
-        selected_command_index,
-        sorted_script_list,
-        window,
-        mode,
-        filter_string,
-    ))
+impl App {
+    fn new() -> Result<Self, String> {
+        let current_directory =
+            env::current_dir().map_err(|e| format!("Failed to get current directory {}", e))?;
+        let json_value = parse_package_json_file(&current_directory)
+            .ok_or_else(|| "No package.json found or failed to parse".to_string())?;
+        let mut highlighted_command_index: usize = 0;
+        let package_manager_prefix = get_package_manager_prefix(&current_directory);
+        let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
+        let commands = sort_command_list(prefixed_script_list);
+        let window = initscr();
+        let mut mode: Mode = Mode::DEFAULT;
+        let mut filter_string: String = String::new();
+        noecho();
+        curs_set(0);
+        start_color();
+        ColorScheme::init();
+
+        Ok(App {
+            highlighted_command_index,
+            commands,
+            window,
+            mode,
+            filter_string,
+        })
+    }
 }
 
 fn handle_keyboard_input(
-    selected_command_index: &mut usize,
-    sorted_script_list: &Vec<String>,
+    highlighted_command_index: &mut usize,
+    commands: &Vec<String>,
     window: &pancurses::Window,
-    mode: &mut ToolMode,
+    mode: &mut Mode,
     filter_string: &mut String,
     quit: &mut bool,
     filtered_commands: &mut Vec<String>,
 ) {
     let key = window.getch();
     match *mode {
-        ToolMode::FILTER => handle_filter_mode(
-            *selected_command_index,
-            sorted_script_list,
+        Mode::FILTER => handle_filter_mode(
+            *highlighted_command_index,
+            commands,
             window,
             mode,
             filter_string,
@@ -114,16 +124,14 @@ fn handle_keyboard_input(
             filtered_commands,
             key,
         ),
-        ToolMode::DEFAULT => {
-            handle_default_mode(selected_command_index, sorted_script_list, mode, quit, key)
-        }
+        Mode::DEFAULT => handle_default_mode(highlighted_command_index, commands, mode, quit, key),
     }
 }
 
 fn handle_default_mode(
-    selected_command_index: &mut usize,
-    sorted_script_list: &Vec<String>,
-    mode: &mut ToolMode,
+    highlighted_command_index: &mut usize,
+    command: &Vec<String>,
+    mode: &mut Mode,
     quit: &mut bool,
     key: Option<Input>,
 ) {
@@ -133,26 +141,26 @@ fn handle_default_mode(
             endwin();
         }
         Some(Input::Character('w')) => {
-            if *selected_command_index > 0 {
-                *selected_command_index -= 1;
+            if *highlighted_command_index > 0 {
+                *highlighted_command_index -= 1;
             } else {
-                *selected_command_index = sorted_script_list.len() - 1;
+                *highlighted_command_index = command.len() - 1;
             }
         }
         Some(Input::Character('s')) => {
-            *selected_command_index += 1;
-            if *selected_command_index > sorted_script_list.len() - 1 {
-                *selected_command_index = 0;
+            *highlighted_command_index += 1;
+            if *highlighted_command_index > command.len() - 1 {
+                *highlighted_command_index = 0;
             }
         }
         Some(Input::Character('\n')) => {
             *quit = true;
             endwin();
-            execute_command(&*sorted_script_list[*selected_command_index]);
+            execute_command(&*command[*highlighted_command_index]);
         }
         Some(Input::Character('f')) => {
-            *mode = ToolMode::FILTER;
-            *selected_command_index = 0;
+            *mode = Mode::FILTER;
+            *highlighted_command_index = 0;
         }
         _ => {}
     }
@@ -162,7 +170,7 @@ fn handle_filter_mode(
     selected_command_index: usize,
     sorted_script_list: &Vec<String>,
     window: &pancurses::Window,
-    mode: &mut ToolMode,
+    mode: &mut Mode,
     filter_string: &mut String,
     quit: &mut bool,
     filtered_commands: &mut Vec<String>,
@@ -171,7 +179,7 @@ fn handle_filter_mode(
     match key {
         None => {}
         Some(Input::Character('\x1B')) => {
-            *mode = ToolMode::DEFAULT;
+            *mode = Mode::DEFAULT;
             filter_string.clear();
             *filtered_commands = sorted_script_list.clone();
             display_commands(selected_command_index, &*filtered_commands, window);
