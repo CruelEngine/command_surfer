@@ -77,203 +77,127 @@ impl App {
     fn run(&mut self) {
         let mut filtered_commands: Vec<String> = self.commands.clone();
         while !self.quit {
-            display_commands(
-                self.highlighted_command_index,
-                &filtered_commands,
-                &self.window,
-            );
-            display_filter_value(
-                &self.filter_string,
-                &self.window,
-                filtered_commands.len() as i32,
-            );
-            handle_keyboard_input(
-                &mut self.highlighted_command_index,
-                &self.commands,
-                &self.window,
-                &mut self.mode,
-                &mut self.filter_string,
-                &mut self.quit,
-                &mut filtered_commands,
-            );
+            self.display_commands(&filtered_commands);
+            self.display_filter_value(filtered_commands.len() as i32);
+            self.handle_keyboard_input(&mut filtered_commands);
         }
     }
-}
 
-fn handle_keyboard_input(
-    highlighted_command_index: &mut usize,
-    commands: &Vec<String>,
-    window: &pancurses::Window,
-    mode: &mut Mode,
-    filter_string: &mut String,
-    quit: &mut bool,
-    filtered_commands: &mut Vec<String>,
-) {
-    let key = window.getch();
-    match *mode {
-        Mode::FILTER => handle_filter_mode(
-            *highlighted_command_index,
-            commands,
-            window,
-            mode,
-            filter_string,
-            quit,
-            filtered_commands,
-            key,
-        ),
-        Mode::DEFAULT => handle_default_mode(highlighted_command_index, commands, mode, quit, key),
-    }
-}
-
-fn handle_default_mode(
-    highlighted_command_index: &mut usize,
-    command: &Vec<String>,
-    mode: &mut Mode,
-    quit: &mut bool,
-    key: Option<Input>,
-) {
-    match key {
-        Some(Input::Character('q')) => {
-            *quit = true;
-            endwin();
+    fn handle_keyboard_input(&mut self, filtered_commands: &mut Vec<String>) {
+        let key = self.window.getch();
+        match self.mode {
+            Mode::FILTER => self.handle_filter_mode(filtered_commands, key),
+            Mode::DEFAULT => self.handle_default_mode(key),
         }
-        Some(Input::Character('w')) => {
-            if *highlighted_command_index > 0 {
-                *highlighted_command_index -= 1;
+    }
+
+    fn handle_default_mode(&mut self, key: Option<Input>) {
+        match key {
+            Some(Input::Character('q')) => {
+                self.quit = true;
+                endwin();
+            }
+            Some(Input::Character('w')) => {
+                if self.highlighted_command_index > 0 {
+                    self.highlighted_command_index -= 1;
+                } else {
+                    self.highlighted_command_index = self.commands.len() - 1;
+                }
+            }
+            Some(Input::Character('s')) => {
+                self.highlighted_command_index += 1;
+                if self.highlighted_command_index > self.commands.len() - 1 {
+                    self.highlighted_command_index = 0;
+                }
+            }
+            Some(Input::Character('\n')) => {
+                self.quit = true;
+                endwin();
+                execute_command(&self.commands[self.highlighted_command_index]);
+            }
+            Some(Input::Character('f')) => {
+                self.mode = Mode::FILTER;
+                self.highlighted_command_index = 0;
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_filter_mode(&mut self, filtered_commands: &mut Vec<String>, key: Option<Input>) {
+        match key {
+            None => {}
+            Some(Input::Character('\x1B')) => {
+                self.mode = Mode::DEFAULT;
+                self.filter_string.clear();
+                *filtered_commands = self.commands.clone();
+                self.display_commands(&*filtered_commands);
+            }
+            Some(Input::Character('\n')) => {
+                self.quit = true;
+                endwin();
+                execute_command(&self.commands[self.highlighted_command_index]);
+            }
+            Some(Input::KeyBackspace) => {
+                self.filter_string.pop();
+                let filter_pattern: &str = &self.filter_string;
+                *filtered_commands = self.commands.clone();
+                self.filter_commands(filtered_commands, filter_pattern);
+            }
+            Some(Input::Character('\x7f')) => {
+                self.filter_string.pop();
+                let filter_pattern: &str = &self.filter_string;
+                *filtered_commands = self.commands.clone();
+                self.filter_commands(filtered_commands, filter_pattern);
+            }
+            Some(Input::KeyDC) => {
+                self.filter_string.pop();
+                let filter_pattern: &str = &self.filter_string;
+                *filtered_commands = self.commands.clone();
+                self.filter_commands(filtered_commands, filter_pattern);
+            }
+            Some(Input::Character(character)) => {
+                if character.is_alphanumeric() || character == ' ' {
+                    self.filter_string.push(character);
+                    let filter_pattern: &str = &self.filter_string;
+                    *filtered_commands = self.commands.clone();
+                    self.filter_commands(filtered_commands, filter_pattern);
+                }
+            }
+            _ => {
+                todo!()
+            }
+        }
+    }
+
+    fn filter_commands(&self, filtered_commands: &mut Vec<String>, filter_pattern: &str) {
+        *filtered_commands = filtered_commands
+            .iter()
+            .filter(|comand| comand.contains(filter_pattern))
+            .cloned()
+            .collect();
+        self.display_commands(&filtered_commands);
+    }
+
+    fn display_commands(&self, commands: &Vec<String>) {
+        self.window.erase();
+        self.window.mv(0, 0);
+        for (index, script_name) in commands.iter().enumerate() {
+            self.window.mv(index as i32, 0 as i32);
+            let color_pair = if index == self.highlighted_command_index {
+                ColorScheme::Highlighted.pair()
             } else {
-                *highlighted_command_index = command.len() - 1;
-            }
-        }
-        Some(Input::Character('s')) => {
-            *highlighted_command_index += 1;
-            if *highlighted_command_index > command.len() - 1 {
-                *highlighted_command_index = 0;
-            }
-        }
-        Some(Input::Character('\n')) => {
-            *quit = true;
-            endwin();
-            execute_command(&*command[*highlighted_command_index]);
-        }
-        Some(Input::Character('f')) => {
-            *mode = Mode::FILTER;
-            *highlighted_command_index = 0;
-        }
-        _ => {}
-    }
-}
-
-fn handle_filter_mode(
-    selected_command_index: usize,
-    sorted_script_list: &Vec<String>,
-    window: &pancurses::Window,
-    mode: &mut Mode,
-    filter_string: &mut String,
-    quit: &mut bool,
-    filtered_commands: &mut Vec<String>,
-    key: Option<Input>,
-) {
-    match key {
-        None => {}
-        Some(Input::Character('\x1B')) => {
-            *mode = Mode::DEFAULT;
-            filter_string.clear();
-            *filtered_commands = sorted_script_list.clone();
-            display_commands(selected_command_index, &*filtered_commands, window);
-        }
-        Some(Input::Character('\n')) => {
-            *quit = true;
-            endwin();
-            execute_command(&*sorted_script_list[selected_command_index]);
-        }
-        Some(Input::KeyBackspace) => {
-            filter_string.pop();
-            let filter_pattern: &str = &*filter_string;
-            *filtered_commands = sorted_script_list.clone();
-            filter_commands(
-                selected_command_index,
-                window,
-                filtered_commands,
-                filter_pattern,
-            );
-        }
-        Some(Input::Character('\x7f')) => {
-            filter_string.pop();
-            let filter_pattern: &str = &*filter_string;
-            *filtered_commands = sorted_script_list.clone();
-            filter_commands(
-                selected_command_index,
-                window,
-                filtered_commands,
-                filter_pattern,
-            );
-        }
-        Some(Input::KeyDC) => {
-            filter_string.pop();
-            let filter_pattern: &str = &*filter_string;
-            *filtered_commands = sorted_script_list.clone();
-            filter_commands(
-                selected_command_index,
-                window,
-                filtered_commands,
-                filter_pattern,
-            );
-        }
-        Some(Input::Character(character)) => {
-            if character.is_alphanumeric() || character == ' ' {
-                filter_string.push(character);
-                let filter_pattern: &str = &*filter_string;
-                *filtered_commands = sorted_script_list.clone();
-                filter_commands(
-                    selected_command_index,
-                    window,
-                    filtered_commands,
-                    filter_pattern,
-                );
-            }
-        }
-        _ => {
-            todo!()
+                ColorScheme::Regular.pair()
+            };
+            self.window.attron(color_pair);
+            self.window.addstr(&script_name);
+            self.window.attroff(color_pair);
         }
     }
-}
 
-fn filter_commands(
-    selected_command_index: usize,
-    window: &pancurses::Window,
-    filtered_commands: &mut Vec<String>,
-    filter_pattern: &str,
-) {
-    *filtered_commands = filtered_commands
-        .iter()
-        .filter(|comand| comand.contains(filter_pattern))
-        .cloned()
-        .collect();
-    display_commands(selected_command_index, &*filtered_commands, window);
-}
-
-fn display_commands(
-    selected_command_index: usize,
-    sorted_script_list: &Vec<String>,
-    window: &pancurses::Window,
-) {
-    window.erase();
-    window.mv(0, 0);
-    for (index, script_name) in sorted_script_list.iter().enumerate() {
-        window.mv(index as i32, 0 as i32);
-        let color_pair = if index == selected_command_index {
-            ColorScheme::Highlighted.pair()
-        } else {
-            ColorScheme::Regular.pair()
-        };
-        window.attron(color_pair);
-        window.addstr(&script_name);
-        window.attroff(color_pair);
+    fn display_filter_value(&self, last_index: i32) {
+        self.window.mv(last_index + 1, 0 as i32);
+        self.window
+            .addstr(format!("filtered value: {}", self.filter_string));
+        self.window.refresh();
     }
-}
-
-fn display_filter_value(filter_pattern: &str, window: &pancurses::Window, last_index: i32) {
-    window.mv(last_index + 1, 0 as i32);
-    window.addstr(format!("filtered value: {}", filter_pattern));
-    window.refresh();
 }
