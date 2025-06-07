@@ -37,7 +37,7 @@ cargo build --release --target aarch64-apple-darwin
 Run the executable in the root directory of any Node.js project containing a `package.json` file:
 
 ```bash
-node_script_list
+command_surfer
 ```
 
 ### Navigation Controls
