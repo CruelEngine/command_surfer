@@ -4,7 +4,7 @@ use pancurses::{
 };
 use std::env;
 
-use node_script_list::{
+use command_surfer::{
     execute_command, get_package_manager_prefix, parse_package_json_file, sort_command_list,
     CommandPrefix, Mode,
 };
