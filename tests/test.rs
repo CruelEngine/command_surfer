@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use node_script_list::*;
+    use command_surfer::*;
     use std::collections::HashMap;
     use std::fs;
     use tempfile::tempdir;

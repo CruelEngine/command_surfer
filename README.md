@@ -1,27 +1,69 @@
 # Package Manager CLI Tool
 This documentation provides instructions on using our package manager CLI tool. The tool allows you to manage software packages by executing commands from a list of available scripts.
 
-### Usage
-#### Executing Commands
-- Use arrow keys (←, →) to navigate through available commands in the list.
-- Press 'q' to quit without executing any command.
-- Press 'w' to move up, pressing enter on the same line to execute.
-- Press 's' to move down, pressing enter to execute.
+A CLI tool that reads `package.json` files in Node.js projects and displays available scripts in an interactive menu. It automatically detects the package manager (npm, yarn, or pnpm) and executes the selected script with the appropriate command.
 
+## Features
 
-### System Compatibility
-OS: Cross-platform (tested on Linux and windows)
-Rust Version: Requires Rust 1.35+
+- Interactive TUI (Text User Interface) for selecting and executing npm/yarn/pnpm scripts
+- Automatic package manager detection (npm, yarn, pnpm)
+- Script filtering functionality
+- Cross-platform support (Linux, Windows, macOS)
+- Keyboard navigation
 
+## Installation
 
-## Build from source:
+### From Source
 
-- Ubuntu(Debian): ```cargo deb```
-- Windows: ```cargo build --release --target x86_64-pc-windows-gnu```
+1. Clone the repository
+2. Build using Cargo:
+
+```bash
+# For Debian/Ubuntu (creates a .deb package)
+cargo deb
+
+# For Windows
+cargo build --release --target x86_64-pc-windows-gnu
+
+# For macOS (Intel)
+cargo build --release --target x86_64-apple-darwin
+
+# For macOS (Apple Silicon/ARM)
+cargo build --release --target aarch64-apple-darwin
+```
+
+## Usage
+
+Run the executable in the root directory of any Node.js project containing a `package.json` file:
+
+```bash
+node_script_list
+```
+
+### Navigation Controls
+
+- **w**: Move up in the script list
+- **s**: Move down in the script list
+- **f**: Enter filter mode (type to filter scripts by name)
+- **Enter**: Execute the selected script
+- **q**: Quit without executing any script
+- **Esc**: Exit filter mode (when in filter mode)
 
 ## Dependencies
-This tool depends on:
 
-- serde for JSON parsing.
+- [pancurses](https://crates.io/crates/pancurses): Terminal UI library
+- [serde](https://crates.io/crates/serde): JSON serialization/deserialization
+- [serde_json](https://crates.io/crates/serde_json): JSON parsing
 
-If you encounter any issues or have suggestions, please open an issue in our repository!
+## System Requirements
+
+- Rust 1.35+
+- Compatible with Linux and Windows
+
+## License
+
+MIT
+
+## Author
+
+CruelEngine
