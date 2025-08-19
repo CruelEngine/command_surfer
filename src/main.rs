@@ -60,7 +60,6 @@ impl App {
     }
 
     fn run(&mut self) {
-        let filtered_commands: Vec<String> = self.commands.clone();
         while !self.quit {
             let filtered_commands = self
                 .commands
