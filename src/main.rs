@@ -62,6 +62,13 @@ impl App {
     fn run(&mut self) {
         let filtered_commands: Vec<String> = self.commands.clone();
         while !self.quit {
+            let filtered_commands = self
+                .commands
+                .clone()
+                .iter()
+                .filter(|comand| comand.contains(&self.filter_string))
+                .cloned()
+                .collect();
             self.display_commands(&filtered_commands);
             match self.mode {
                 Mode::FILTER => self.display_filter_value(filtered_commands.len() as i32),
