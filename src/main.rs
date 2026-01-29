@@ -31,33 +31,23 @@ struct App {
     commands: Vec<String>,
     window: Window,
     mode: Mode,
-    filter_string: String,
     quit: bool,
 }
 
 #[derive(Parser)]
 struct Cli {
-    /// The path to the file
     #[arg(short = 'f', long)]
     filter: Option<String>,
 }
 
 impl App {
     fn new() -> Result<Self, String> {
-        let args = Cli::parse();
         let current_directory =
             env::current_dir().map_err(|e| format!("Failed to get current directory {}", e))?;
         let json_value = parse_package_json_file(&current_directory)
             .ok_or_else(|| "No package.json found or failed to parse".to_string())?;
         let package_manager_prefix = get_package_manager_prefix(&current_directory);
-        let prefixed_script_list: Vec<String> = json_value
-            .prefix_command(package_manager_prefix)
-            .into_iter()
-            .filter(|command| match args.filter.as_ref() {
-                Some(term) => command.contains(term),
-                None => true,
-            })
-            .collect();
+        let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
         let commands = sort_command_list(prefixed_script_list);
         let window = initscr();
         noecho();
@@ -70,25 +60,24 @@ impl App {
             commands,
             window,
             mode: Mode::DEFAULT,
-            filter_string: String::new(),
             quit: false,
         })
     }
 
     fn run(&mut self) {
+        let args = Cli::parse();
         while !self.quit {
             let filtered_commands = self
                 .commands
                 .clone()
                 .iter()
-                .filter(|comand| comand.contains(&self.filter_string))
+                .filter(|command| match args.filter.as_ref() {
+                    Some(term) => command.contains(term),
+                    None => true,
+                })
                 .cloned()
                 .collect();
             self.display_commands(&filtered_commands);
-            match self.mode {
-                Mode::FILTER => self.display_filter_value(filtered_commands.len() as i32),
-                _ => {}
-            }
             self.handle_keyboard_input();
         }
     }
@@ -161,13 +150,6 @@ impl App {
             self.window.addstr(script_name);
             self.window.attroff(color_pair);
         }
-    }
-
-    fn display_filter_value(&self, last_index: i32) {
-        self.window.mv(last_index + 1, 0 as i32);
-        self.window
-            .addstr(format!("filtered value: {}", self.filter_string));
-        self.window.refresh();
     }
 }
 
