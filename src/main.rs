@@ -4,6 +4,7 @@ use pancurses::{
 };
 use std::env;
 
+use clap::Parser;
 use command_surfer::{
     execute_command, get_package_manager_prefix, parse_package_json_file, sort_command_list,
     CommandPrefix, Mode,
@@ -30,8 +31,13 @@ struct App {
     commands: Vec<String>,
     window: Window,
     mode: Mode,
-    filter_string: String,
     quit: bool,
+}
+
+#[derive(Parser)]
+struct Cli {
+    #[arg(short = 'f', long)]
+    filter: Option<String>,
 }
 
 impl App {
@@ -54,35 +60,31 @@ impl App {
             commands,
             window,
             mode: Mode::DEFAULT,
-            filter_string: String::new(),
             quit: false,
         })
     }
 
     fn run(&mut self) {
+        let args = Cli::parse();
         while !self.quit {
             let filtered_commands = self
                 .commands
                 .clone()
                 .iter()
-                .filter(|comand| comand.contains(&self.filter_string))
+                .filter(|command| match args.filter.as_ref() {
+                    Some(term) => command.contains(term),
+                    None => true,
+                })
                 .cloned()
                 .collect();
             self.display_commands(&filtered_commands);
-            match self.mode {
-                Mode::FILTER => self.display_filter_value(filtered_commands.len() as i32),
-                _ => {}
-            }
             self.handle_keyboard_input();
         }
     }
 
     fn handle_keyboard_input(&mut self) {
         let key = self.window.getch();
-        match self.mode {
-            Mode::FILTER => self.handle_filter_mode(key),
-            Mode::DEFAULT => self.handle_default_mode(key),
-        }
+        self.handle_default_mode(key);
     }
 
     fn handle_default_mode(&mut self, key: Option<Input>) {
@@ -117,79 +119,37 @@ impl App {
         }
     }
 
-    fn handle_filter_mode(&mut self, key: Option<Input>) {
-        match key {
-            None => {}
-            Some(Input::Character('\x1B')) => {
-                self.mode = Mode::DEFAULT;
-                self.filter_string.clear();
-                self.filter_commands(&self.filter_string);
-            }
-            Some(Input::Character('\n')) => {
-                self.quit = true;
-                endwin();
-                execute_command(&self.commands[self.highlighted_command_index]);
-            }
-            Some(Input::KeyBackspace) => {
-                self.filter_string.pop();
-                let filter_pattern: &str = &self.filter_string;
-                self.filter_commands(filter_pattern);
-            }
-            Some(Input::Character('\x7f')) => {
-                self.filter_string.pop();
-                let filter_pattern: &str = &self.filter_string;
-                self.filter_commands(filter_pattern);
-            }
-            Some(Input::KeyDC) => {
-                self.filter_string.pop();
-                let filter_pattern: &str = &self.filter_string;
-                self.filter_commands(filter_pattern);
-            }
-            Some(Input::Character(character)) => {
-                if character.is_alphanumeric() || character == ' ' {
-                    self.filter_string.push(character);
-                    let filter_pattern: &str = &self.filter_string;
-                    self.filter_commands(filter_pattern);
-                }
-            }
-            _ => {
-                todo!()
-            }
-        }
-    }
-
-    fn filter_commands(&self, filter_pattern: &str) {
-        let filtered_commands = self
-            .commands
-            .clone()
-            .iter()
-            .filter(|comand| comand.contains(filter_pattern))
-            .cloned()
-            .collect();
-        self.display_commands(&filtered_commands);
-    }
-
     fn display_commands(&self, commands: &Vec<String>) {
         self.window.erase();
-        self.window.mv(0, 0);
-        for (index, script_name) in commands.iter().enumerate() {
-            self.window.mv(index as i32, 0 as i32);
+        let (max_y, _) = self.window.get_max_yx();
+        let display_height = (max_y - 1).max(1) as usize;
+
+        let scroll_offset = if self.highlighted_command_index >= display_height {
+            self.highlighted_command_index - display_height + 1
+        } else {
+            0
+        };
+
+        let visible_commands = commands
+            .iter()
+            .enumerate()
+            .skip(scroll_offset)
+            .take(display_height);
+
+        for (index, script_name) in visible_commands {
+            let relative_y = (index - scroll_offset) as i32;
+            self.window.mv(relative_y, 0);
+
             let color_pair = if index == self.highlighted_command_index {
                 ColorScheme::Highlighted.pair()
             } else {
                 ColorScheme::Regular.pair()
             };
+
             self.window.attron(color_pair);
-            self.window.addstr(&script_name);
+            self.window.addstr(script_name);
             self.window.attroff(color_pair);
         }
-    }
-
-    fn display_filter_value(&self, last_index: i32) {
-        self.window.mv(last_index + 1, 0 as i32);
-        self.window
-            .addstr(format!("filtered value: {}", self.filter_string));
-        self.window.refresh();
     }
 }
 

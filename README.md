@@ -40,11 +40,14 @@ Run the executable in the root directory of any Node.js project containing a `pa
 command_surfer
 ```
 
+```bash
+command_surfer -f test # would filter everything that has test in the command
+```
+
 ### Navigation Controls
 
 - **w**: Move up in the script list
 - **s**: Move down in the script list
-- **f**: Enter filter mode (type to filter scripts by name)
 - **Enter**: Execute the selected script
 - **q**: Quit without executing any script
 - **Esc**: Exit filter mode (when in filter mode)
@@ -54,6 +57,7 @@ command_surfer
 - [pancurses](https://crates.io/crates/pancurses): Terminal UI library
 - [serde](https://crates.io/crates/serde): JSON serialization/deserialization
 - [serde_json](https://crates.io/crates/serde_json): JSON parsing
+- [clap](https://crates.io/crate/clap): Cli Args
 
 ## System Requirements
 
