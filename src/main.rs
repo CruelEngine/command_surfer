@@ -42,13 +42,23 @@ struct Cli {
 
 impl App {
     fn new() -> Result<Self, String> {
+        let args = Cli::parse();
         let current_directory =
             env::current_dir().map_err(|e| format!("Failed to get current directory {}", e))?;
         let json_value = parse_package_json_file(&current_directory)
             .ok_or_else(|| "No package.json found or failed to parse".to_string())?;
         let package_manager_prefix = get_package_manager_prefix(&current_directory);
         let prefixed_script_list: Vec<String> = json_value.prefix_command(package_manager_prefix);
-        let commands = sort_command_list(prefixed_script_list);
+        let command_list = prefixed_script_list
+            .clone()
+            .iter()
+            .filter(|command| match args.filter.as_ref() {
+                Some(term) => command.contains(term),
+                None => true,
+            })
+            .cloned()
+            .collect();
+        let commands = sort_command_list(command_list);
         let window = initscr();
         noecho();
         curs_set(0);
@@ -65,19 +75,8 @@ impl App {
     }
 
     fn run(&mut self) {
-        let args = Cli::parse();
         while !self.quit {
-            let filtered_commands = self
-                .commands
-                .clone()
-                .iter()
-                .filter(|command| match args.filter.as_ref() {
-                    Some(term) => command.contains(term),
-                    None => true,
-                })
-                .cloned()
-                .collect();
-            self.display_commands(&filtered_commands);
+            self.display_commands();
             self.handle_keyboard_input();
         }
     }
@@ -119,7 +118,7 @@ impl App {
         }
     }
 
-    fn display_commands(&self, commands: &Vec<String>) {
+    fn display_commands(&self) {
         self.window.erase();
         let (max_y, _) = self.window.get_max_yx();
         let display_height = (max_y - 1).max(1) as usize;
@@ -130,7 +129,8 @@ impl App {
             0
         };
 
-        let visible_commands = commands
+        let visible_commands = self
+            .commands
             .iter()
             .enumerate()
             .skip(scroll_offset)
