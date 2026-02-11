@@ -12,23 +12,10 @@ jobs:
       matrix:
         target:
           - x86_64-unknown-linux-gnu
-          - x86_64-pc-windows-msvc
-          - x86_64-apple-darwin
-          - aarch64-apple-darwin
         include:
           - os: ubuntu-latest
             artifact_name: command_surfer-linux
             asset_name: command_surfer-x86_64-unknown-linux-gnu
-          - os: windows-latest
-            artifact_name: command_surfer-windows.exe
-            asset_name: command_surfer-x86_64-pc-windows-msvc.exe
-          - os: macos-latest
-            artifact_name: command_surfer-macos
-            asset_name: command_surfer-x86_64-apple-darwin
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: my-app-macos-arm64
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
