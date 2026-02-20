@@ -12,10 +12,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux Targets
+          # Linux Target
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: command_surfer-linux-x64
+            artifact_name: command_surfer-linux-x64.tar.gz
           # macOS Targets
           - os: macos-latest
             target: x86_64-apple-darwin
@@ -33,30 +33,34 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # 1. Build Logic for Linux (Debian & RPM)
-      - name: Build Linux Packages
+      # --- LINUX ONLY SECTION ---
+      - name: Build Linux Packages (.deb & .rpm)
         if: matrix.os == 'ubuntu-latest'
         run: |
           cargo install cargo-deb cargo-generate-rpm
           cargo build --release --target ${{ matrix.target }}
           cargo deb --target ${{ matrix.target }} --no-build
           cargo generate-rpm --target ${{ matrix.target }}
+          # Also create a tar.gz for the raw binary
+          cd target/${{ matrix.target }}/release
+          tar -czf ../../../${{ matrix.artifact_name }} command_surfer
 
-      # 2. Build Logic for macOS (Tarball)
+      # --- MACOS ONLY SECTION ---
       - name: Build macOS Artifacts
         if: matrix.os == 'macos-latest'
         run: |
           cargo build --release --target ${{ matrix.target }}
-          # Create a tar.gz to preserve executable bits and add an extension
           cd target/${{ matrix.target }}/release
           tar -czf ../../../${{ matrix.artifact_name }} command_surfer
 
+      # --- UPLOAD SECTION ---
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
+          # Use dynamic pattern matching to pick up whatever was built in this specific job
           files: |
             ${{ matrix.artifact_name }}
-            target/x86_64-unknown-linux-gnu/debian/*.deb
-            target/x86_64-unknown-linux-gnu/generate-rpm/*.rpm
+            target/${{ matrix.target }}/debian/*.deb
+            target/${{ matrix.target }}/generate-rpm/*.rpm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
