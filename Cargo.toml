@@ -24,3 +24,9 @@ copyright = "2026, CruelEngine"
 extended-description = """\
 A tool for surfing commands efficiently and managing CLI workflows."""
 section = "utility"
+
+
+[package.metadata.rpm.cargo-generate-rpm]
+# RPM also needs a summary and license
+summary = "Command line surfing utility"
+license = "MIT" # Or your specific license
