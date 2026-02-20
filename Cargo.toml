@@ -20,8 +20,7 @@ tempfile = "3.20.0"
 
 [package.metadata.deb]
 maintainer = "CruelEngine <babhineethbhat@gmail.com>"
-copyright = "2026, Your Name"
-license-file = ["LICENSE", "0"]
+copyright = "2026, CruelEngine"
 extended-description = """\
 A tool for surfing commands efficiently and managing CLI workflows."""
 section = "utility"
