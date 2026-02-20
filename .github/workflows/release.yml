@@ -31,10 +31,15 @@ jobs:
       - name: Rename artifacts
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            mv target/release/command_surfer.exe ${{ matrix.artifact_name }}
+          # The binary is deep in the target folder because of the --target flag
+          SOURCE="target/x86_64-unknown-linux-gnu/release/command_surfer"
+
+          if [ -f "$SOURCE" ]; then
+            mv "$SOURCE" command_surfer-linux
           else
-            mv target/release/command_surfer ${{ matrix.artifact_name }}
+            echo "Error: Binary not found at $SOURCE"
+            ls -R target/ # This helps debug if the path is still slightly off
+            exit 1
           fi
 
       - name: Upload binaries to release
