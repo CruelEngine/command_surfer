@@ -4,19 +4,35 @@ version = "0.1.0"
 edition = "2021"
 authors = ["CruelEngine"]
 description = "A Simple cli application to read package.json in the root of a node project and list the script for user's consumption"
+license = "MIT"
+repository = "https://github.com/CruelEngine/command_surfer"
+homepage = "https://github.com/CruelEngine/command_surfer"
+readme = "README.md"
+keywords = ["cli", "node", "scripts", "package-manager", "tui"]
+categories = ["command-line-utilities", "development-tools"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-cargo-deb = "3.6.3"
-clap = { version = "4.5.55", features = ["derive"] }
-pancurses = { version = "0.17.0", features = ["win32"] }
-serde = { version = "1.0.200", features = ["derive"] }
-serde_json = "1.0.116"
+cargo-deb ="3.6.3"
+clap = { version = "4.5", features = ["derive"] }
+pancurses = { version = "0.17", features = ["win32"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [dev-dependencies]
-tempfile = "3.20.0"
+tempfile = "3.10"
 
+[profile.dev]
+incremental = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+incremental = false
 
 [package.metadata.deb]
 maintainer = "CruelEngine <babhineethbhat@gmail.com>"
@@ -37,3 +53,7 @@ release = "0.1.0"
 vendor ="CruelEngine"
 summary = "Command line surfing utility"
 license = "MIT" # Or your specific license
+assets = [
+    { source = "target/release/command_surfer", dest = "/usr/bin/command_surfer", mode = "755" },
+    { source = "README.md", dest = "/usr/share/doc/command_surfer/README.md", mode = "644" }
+]
