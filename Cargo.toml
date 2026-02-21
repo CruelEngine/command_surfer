@@ -30,3 +30,10 @@ section = "utility"
 # RPM also needs a summary and license
 summary = "Command line surfing utility"
 license = "MIT" # Or your specific license
+
+
+[package.metadata.generate-rpm]
+release = "0.1.0"
+vendor ="CruelEngine"
+summary = "Command line surfing utility"
+license = "MIT" # Or your specific license
