@@ -54,14 +54,6 @@ jobs:
           cd target/${{ matrix.target }}/release
           tar -czf ../../../command_surfer-${{ github.ref_name }}-${{ matrix.platform_suffix }}.tar.gz command_surfer
 
-      # --- WINDOWS ONLY SECTION ---
-      - name: Build Windows Artifact
-        if: matrix.os == 'windows-latest'
-        run: |
-          cargo build --release --target ${{ matrix.target }}
-          cd target/${{ matrix.target }}/release
-          7z a ../../../command_surfer-${{ github.ref_name }}-${{ matrix.platform_suffix }}.zip command_surfer.exe
-
       # --- MACOS ONLY SECTION ---
       - name: Build macOS Artifacts
         if: matrix.os == 'macos-latest'
