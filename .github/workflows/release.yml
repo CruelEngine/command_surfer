@@ -12,16 +12,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux Target
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            # Using the version tag in the archive name
             platform_suffix: linux-x64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            platform_suffix: windows-x64
+          # macOS Intel Target
           - os: macos-latest
             target: x86_64-apple-darwin
             platform_suffix: macos-intel
+          # macOS ARM Target
           - os: macos-latest
             target: aarch64-apple-darwin
             platform_suffix: macos-arm64
@@ -35,42 +34,21 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
-      # --- LINUX ONLY SECTION ---
-      - name: Build Linux Artifacts
-        if: matrix.os == 'ubuntu-latest'
+      - name: Build and Package
         run: |
-          cargo install cargo-deb cargo-generate-rpm
+          # Build the release binary
           cargo build --release --target ${{ matrix.target }}
 
-          # Rename .deb: command_surfer-v1.0.0.deb
-          cargo deb --target ${{ matrix.target }} --no-build
-          mv target/${{ matrix.target }}/debian/*.deb command_surfer-${{ github.ref_name }}.deb
-
-          # Rename .rpm: command_surfer-v1.0.0.rpm
-          cargo generate-rpm --target ${{ matrix.target }}
-          mv target/${{ matrix.target }}/generate-rpm/*.rpm command_surfer-${{ github.ref_name }}.rpm
-
-          # Create versioned tarball
+          # Navigate to the output directory
           cd target/${{ matrix.target }}/release
+
+          # Create the versioned tarball
+          # Example: command_surfer-v1.0.0-linux-x64.tar.gz
           tar -czf ../../../command_surfer-${{ github.ref_name }}-${{ matrix.platform_suffix }}.tar.gz command_surfer
 
-      # --- MACOS ONLY SECTION ---
-      - name: Build macOS Artifacts
-        if: matrix.os == 'macos-latest'
-        run: |
-          cargo build --release --target ${{ matrix.target }}
-          cd target/${{ matrix.target }}/release
-          tar -czf ../../../command_surfer-${{ github.ref_name }}-${{ matrix.platform_suffix }}.tar.gz command_surfer
-
-      # --- UPLOAD SECTION ---
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
         with:
-          fail_on_unmatched_files: false
-          files: |
-            command_surfer-${{ github.ref_name }}-*.tar.gz
-            command_surfer-${{ github.ref_name }}-*.zip
-            command_surfer-${{ github.ref_name }}.deb
-            command_surfer-${{ github.ref_name }}.rpm
+          files: command_surfer-${{ github.ref_name }}-*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
